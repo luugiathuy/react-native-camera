@@ -561,8 +561,19 @@ RCT_EXPORT_METHOD(hasFlash:(RCTPromiseResolveBlock)resolve reject:(RCTPromiseRej
 - (void)captureStill:(NSInteger)target options:(NSDictionary *)options orientation:(AVCaptureVideoOrientation)orientation resolve:(RCTPromiseResolveBlock)resolve reject:(RCTPromiseRejectBlock)reject
 {
   dispatch_async(self.sessionQueue, ^{
+      BOOL isHubblePhoto = false;
+      int hubblePhotoSize = 320;
+      if ([options objectForKey:@"isHubblePhoto"]) {
+        isHubblePhoto = [[options objectForKey:@"isHubblePhoto"] boolValue];
+      }
+      if ([options objectForKey:@"hubblePhotoSize"]) {
+        hubblePhotoSize = [[options objectForKey:@"hubblePhotoSize"] intValue];
+      }
+
+      hubblePhotoSize = hubblePhotoSize / [UIScreen mainScreen].scale;
+
 #if TARGET_IPHONE_SIMULATOR
-      CGSize size = CGSizeMake(720, 1280);
+      CGSize size = isHubblePhoto ? CGSizeMake(hubblePhotoSize, hubblePhotoSize) : CGSizeMake(720, 1280);
       UIGraphicsBeginImageContextWithOptions(size, YES, 0);
           // Thanks https://gist.github.com/kylefox/1689973
           CGFloat hue = ( arc4random() % 256 / 256.0 );  //  0.0 to 1.0
@@ -575,12 +586,12 @@ RCT_EXPORT_METHOD(hasFlash:(RCTPromiseResolveBlock)resolve reject:(RCTPromiseRej
           NSDateFormatter *dateFormatter = [[NSDateFormatter alloc] init];
           [dateFormatter setDateFormat:@"dd.MM.YY HH:mm:ss"];
           NSString *text = [dateFormatter stringFromDate:currentDate];
-          UIFont *font = [UIFont systemFontOfSize:40.0];
+          UIFont *font = [UIFont systemFontOfSize:12.0];
           NSDictionary *attributes = [NSDictionary dictionaryWithObjects:
                                       @[font, [UIColor blackColor]]
                                                                  forKeys:
                                       @[NSFontAttributeName, NSForegroundColorAttributeName]];
-          [text drawAtPoint:CGPointMake(size.width/3, size.height/2) withAttributes:attributes];
+          [text drawAtPoint:CGPointMake(size.width/5, size.height/2) withAttributes:attributes];
           UIImage *image = UIGraphicsGetImageFromCurrentImageContext();
       UIGraphicsEndImageContext();
 
@@ -629,6 +640,13 @@ RCT_EXPORT_METHOD(hasFlash:(RCTPromiseResolveBlock)resolve reject:(RCTPromiseRej
             }
           } else {
             rotatedCGImage = cgImage;
+          }
+          
+          if (isHubblePhoto) {
+            CGSize viewportSize = CGSizeMake(hubblePhotoSize, hubblePhotoSize);
+            CGRect captureRect = CGRectMake(0, 0, CGImageGetWidth(rotatedCGImage), CGImageGetHeight(rotatedCGImage));
+            CGRect croppedSize = AVMakeRectWithAspectRatioInsideRect(viewportSize, captureRect);
+            rotatedCGImage = CGImageCreateWithImageInRect(rotatedCGImage, croppedSize);
           }
 
           // Erase stupid TIFF stuff

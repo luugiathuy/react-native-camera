@@ -2,7 +2,9 @@ package com.lwansbrough.RCTCamera;
 
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
+import android.graphics.Canvas;
 import android.graphics.Matrix;
+import android.graphics.Paint;
 import android.media.ExifInterface;
 import android.util.Base64;
 import android.util.Log;
@@ -55,6 +57,24 @@ public class MutableImage {
             throw new ImageMutationFailedException("failed to mirror");
 
         this.currentRepresentation = bitmap;
+    }
+
+    public void hubblePhoto(int hubblePhotoSize) throws ImageMutationFailedException {
+        int width = currentRepresentation.getWidth();
+        int height = currentRepresentation.getHeight();
+        int size = width > height ? height : width;
+
+        Matrix m = new Matrix();
+        float scale = hubblePhotoSize / (float)size;
+        m.preScale(scale, scale);
+        m.preTranslate(-(width - size) * 0.5f, -(height - size) * 0.5f);
+        Bitmap hubbleBitmap = Bitmap.createBitmap(hubblePhotoSize, hubblePhotoSize,
+                Bitmap.Config.ARGB_8888);
+        Canvas canvas = new Canvas(hubbleBitmap);
+        canvas.setMatrix(m);
+        canvas.drawBitmap(currentRepresentation, 0, 0, new Paint(Paint.FILTER_BITMAP_FLAG));
+
+        this.currentRepresentation = hubbleBitmap;
     }
 
     public void fixOrientation() throws ImageMutationFailedException {

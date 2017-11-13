@@ -71,6 +71,8 @@ public class RCTCameraModule extends ReactContextBaseJavaModule
     public static final int MEDIA_TYPE_IMAGE = 1;
     public static final int MEDIA_TYPE_VIDEO = 2;
 
+    private static final int HUBBLE_PHOTO_SIZE = 320;
+
     private static ReactApplicationContext _reactContext;
     private RCTSensorOrientationChecker _sensorOrientationChecker;
     private MediaActionSound sound = new MediaActionSound();
@@ -575,6 +577,19 @@ public class RCTCameraModule extends ReactContextBaseJavaModule
                 mutableImage.mirrorImage();
             } catch (MutableImage.ImageMutationFailedException e) {
                 promise.reject("Error mirroring image", e);
+            }
+        }
+
+        boolean isHubblePhoto = options.hasKey("isHubblePhoto") && options.getBoolean("isHubblePhoto");
+        if (isHubblePhoto) {
+            int hubblePhotoSize = HUBBLE_PHOTO_SIZE;
+            if (options.hasKey("hubblePhotoSize")) {
+                hubblePhotoSize = options.getInt("hubblePhotoSize");
+            }
+            try {
+                mutableImage.hubblePhoto(hubblePhotoSize);
+            } catch (MutableImage.ImageMutationFailedException e) {
+                promise.reject("Error creating hubble photo", e);
             }
         }
 
