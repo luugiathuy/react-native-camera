@@ -643,10 +643,15 @@ RCT_EXPORT_METHOD(hasFlash:(RCTPromiseResolveBlock)resolve reject:(RCTPromiseRej
           }
           
           if (isHubblePhoto) {
+            // Square crop to same aspect ratio hubblePhotoSize x hubblePhotoSize
             CGSize viewportSize = CGSizeMake(hubblePhotoSize, hubblePhotoSize);
             CGRect captureRect = CGRectMake(0, 0, CGImageGetWidth(rotatedCGImage), CGImageGetHeight(rotatedCGImage));
             CGRect croppedSize = AVMakeRectWithAspectRatioInsideRect(viewportSize, captureRect);
             rotatedCGImage = CGImageCreateWithImageInRect(rotatedCGImage, croppedSize);
+            // Scale to hubblePhotoSize
+            CGFloat scale = (CGFloat)hubblePhotoSize / CGImageGetWidth(rotatedCGImage);
+            CGImageRef scaledCGImage = [self scaleCGImage:rotatedCGImage by:scale];
+            rotatedCGImage = scaledCGImage;
           }
 
           // Erase stupid TIFF stuff
@@ -753,6 +758,32 @@ RCT_EXPORT_METHOD(hasFlash:(RCTPromiseResolveBlock)resolve reject:(RCTPromiseRej
   CGImageRef rotatedImage = CGBitmapContextCreateImage(bmContext);
   CFRelease(bmContext);
   return rotatedImage;
+}
+
+- (CGImageRef)scaleCGImage:(CGImageRef)imgRef by:(CGFloat)scale {
+  // Get image width, height. We'll use the entire image.
+  int width = CGImageGetWidth(imgRef) * scale;
+  int height = CGImageGetHeight(imgRef) * scale;
+
+  // create context, keeping original image properties
+  CGColorSpaceRef colorspace = CGImageGetColorSpace(imgRef);
+  CGContextRef context = CGBitmapContextCreate(NULL, width, height,
+                                               CGImageGetBitsPerComponent(imgRef),
+                                               CGImageGetBytesPerRow(imgRef),
+                                               colorspace,
+                                               CGImageGetAlphaInfo(imgRef));
+  CGColorSpaceRelease(colorspace);
+
+  if(context == NULL)
+    return nil;
+
+  // draw image to context (resizing it)
+  CGContextDrawImage(context, CGRectMake(0, 0, width, height), imgRef);
+  // extract resulting image from context
+  CGImageRef newImgRef = CGBitmapContextCreateImage(context);
+  CGContextRelease(context);
+
+  return newImgRef;
 }
 
 -(void)captureVideo:(NSInteger)target options:(NSDictionary *)options resolve:(RCTPromiseResolveBlock)resolve reject:(RCTPromiseRejectBlock)reject
