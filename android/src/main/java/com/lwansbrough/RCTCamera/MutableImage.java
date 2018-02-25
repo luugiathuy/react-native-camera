@@ -1,5 +1,6 @@
 package com.lwansbrough.RCTCamera;
 
+import android.content.res.Configuration;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.Canvas;
@@ -38,6 +39,14 @@ public class MutableImage {
         this.currentRepresentation = toBitmap(originalImageData);
     }
 
+    public int getWidth() {
+        return this.currentRepresentation.getWidth();
+    }
+
+    public int getHeight() {
+        return this.currentRepresentation.getHeight();
+    }
+
     public void mirrorImage() throws ImageMutationFailedException {
         Matrix m = new Matrix();
 
@@ -47,8 +56,8 @@ public class MutableImage {
                 currentRepresentation,
                 0,
                 0,
-                currentRepresentation.getWidth(),
-                currentRepresentation.getHeight(),
+                getWidth(),
+                getHeight(),
                 m,
                 false
         );
@@ -96,6 +105,25 @@ public class MutableImage {
         }
     }
 
+    public void cropToPreview(double previewRatio) throws IllegalArgumentException {
+        int pictureWidth = getWidth(), pictureHeight = getHeight();
+        int targetPictureWidth, targetPictureHeight;
+
+        if (previewRatio * pictureHeight > pictureWidth) {
+            targetPictureWidth = pictureWidth;
+            targetPictureHeight = (int) (pictureWidth / previewRatio);
+        } else {
+            targetPictureHeight = pictureHeight;
+            targetPictureWidth = (int) (pictureHeight * previewRatio);
+        }
+        this.currentRepresentation = Bitmap.createBitmap(
+                this.currentRepresentation,
+                (pictureWidth - targetPictureWidth) / 2,
+                (pictureHeight - targetPictureHeight) / 2,
+                targetPictureWidth,
+                targetPictureHeight);
+    }
+
     //see http://www.impulseadventure.com/photo/exif-orientation.html
     private void rotate(int exifOrientation) throws ImageMutationFailedException {
         final Matrix bitmapMatrix = new Matrix();
@@ -134,8 +162,8 @@ public class MutableImage {
                 currentRepresentation,
                 0,
                 0,
-                currentRepresentation.getWidth(),
-                currentRepresentation.getHeight(),
+                getWidth(),
+                getHeight(),
                 bitmapMatrix,
                 false
         );
